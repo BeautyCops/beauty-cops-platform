@@ -1,0 +1,74 @@
+# Enable Buildkit and let compose use it to speed up image building
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+  DJANGO_IMAGE_NAME: ${{ vars.DOCKER_REGISTRY }}/beautycops_django
+  POSTGRES_IMAGE_NAME: ${{ vars.DOCKER_REGISTRY }}/beautycops_postgres
+  ENVIRONMENT: ${{ vars.ENVIRONMENT }} # This should be different per environment but the github plan doesn't support environments
+
+on:
+  push:
+    branches: ['main']
+    paths-ignore: ['docs/**']
+
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: [ubuntu-latest]
+    concurrency: release
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.DOCKER_REGISTRY }}
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DJANGO_IMAGE_NAME }} ${{ env.POSTGRES_IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+
+      - name: Build and push main Django image
+        id: build-and-push-main
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: "./docker/qa/django/Dockerfile"
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ vars.DOCKER_USERNAME }}/beautycops_django:${{ steps.meta.outputs.version }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=registry,ref=${{ env.DJANGO_IMAGE_NAME }}
+          build-args: "ENVIRONMENT"
+
+      - name: Build and push DB image
+        id: build-and-push-postgres
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: "./docker/qa/postgres/Dockerfile"
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ vars.DOCKER_USERNAME }}/beautycops_postgres:${{ steps.meta.outputs.version }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=registry,ref=${{ env.DJANGO_IMAGE_NAME }}
+          build-args: "ENVIRONMENT"
+
+      - name: Python Semantic Release
+        uses: python-semantic-release/python-semantic-release@master
+        with:
+          github_token: ${{ secrets.PATOKEN }}

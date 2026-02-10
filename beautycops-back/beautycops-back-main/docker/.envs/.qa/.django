@@ -1,0 +1,13 @@
+# generals
+DJANGO_SETTINGS_MODULE=config.settings.qa
+USE_DOCKER=yes
+IPYTHONDIR=/app/.ipython
+# Security
+INTERNAL_IPS=127.0.0.1
+ALLOWED_HOSTS=0.0.0.0,beautycops.telasttechnologies.com,api.beautycops.com,testapi.beautycops.com
+SECRET_KEY=d7QwErTyUiOpAsDfGhJkLpZxVbNmCv1BtXwZs7Dv2EaG4Ih5ToRdP0lKn6Mg9SyWQeY1AxOuBfJiMcOz
+FERNET_KEY=c-wf1MA-43s-jBh9nxe9Wmtyyjt_Nqslhnby5flk9a0=
+# Password Reset
+PASSWORD_RESET_CONFIRM_REDIRECT_BASE_URL=http://localhost:3000/auth/password/reset/confirm
+# Database
+DATABASE_URL=postgres://postgres:admin123@postgres:5432/Beauty-cobs

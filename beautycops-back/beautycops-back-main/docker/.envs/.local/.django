@@ -1,0 +1,11 @@
+# generals
+DJANGO_SETTINGS_MODULE=config.settings.local
+USE_DOCKER=yes
+IPYTHONDIR=/app/.ipython
+# Security
+INTERNAL_IPS=127.0.0.1
+ALLOWED_HOSTS=localhost,0.0.0.0
+SECRET_KEY=django-insecure-$=-l-x!ry^@tb@cfru0dq8oajh&w3lt8)qo=^x+bl4=^16rkym
+FERNET_KEY=d-xg2NB-54t-kCi0oyf0Xnuzzzku_Prtmiocz6gml0b1=
+# Password Reset
+PASSWORD_RESET_CONFIRM_REDIRECT_BASE_URL=http://localhost:3000/auth/password/reset/confirm

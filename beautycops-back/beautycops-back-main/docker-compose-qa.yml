@@ -1,0 +1,44 @@
+services:
+  django:
+    image: telasttechnologies/beautycops_django:main
+    container_name: django-beautycops
+    networks:
+      - nginx_default
+    depends_on:
+      - postgres
+    volumes:
+     - beautycops_locale:/app/locale/
+     - beautycops_media:/app/media/
+     - beautycops_static:/app/static/
+     - beautycops_staticfiles:/app/staticfiles/
+    env_file:
+      - ./docker/.envs/.qa/.django
+      - ./docker/.envs/.qa/.postgres
+    command: /start
+
+  postgres:
+    image: telasttechnologies/beautycops_postgres:main
+    container_name: postgres-beautycops
+    networks:
+      - nginx_default
+    ports:
+      - "5447:5432"  # Host port:Container port
+    volumes:
+      - beautycops_postgres_data:/var/lib/postgresql/data
+      - beautycops_postgres_data_backups:/backups
+      - ./docker/qa/postgres/init-db.d/dump.sql:/docker-entrypoint-initdb.d/01_dump.sql:ro
+
+    env_file:
+      - ./docker/.envs/.qa/.postgres
+
+volumes:
+  beautycops_postgres_data: {}
+  beautycops_postgres_data_backups: {}
+  beautycops_locale: {}
+  beautycops_media: {}
+  beautycops_static: {}
+  beautycops_staticfiles: {}
+
+networks:
+  nginx_default:
+    external: true

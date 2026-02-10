@@ -1,0 +1,11 @@
+services:
+  nextjs:
+    image: telasttechnologies/beautycops_nextjs:main
+    container_name: beautycops-nextjs-qa
+    restart: always
+    networks:
+      - nginx_default
+
+networks:
+  nginx_default:
+    external: true

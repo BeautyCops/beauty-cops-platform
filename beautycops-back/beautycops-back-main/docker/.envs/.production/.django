@@ -1,0 +1,17 @@
+# generals
+DJANGO_SETTINGS_MODULE=config.settings.production
+USE_DOCKER=yes
+IPYTHONDIR=/app/.ipython
+# Security
+INTERNAL_IPS=0.0.0.0
+ALLOWED_HOSTS=0.0.0.0,beautycops.telasttechnologies.com,api,beautycops.com,testapi.beautycops.com
+SECRET_KEY=c9MnVbXzLkUjHmNpFqVr3CtXwZs7Dv2EaG4Ih5ToRdP0lKn6Mg9SyWQeY1AxOuBfJiMcOz
+FERNET_KEY=d-xg2NB-54t-kCi0oyf0Xnuzzzku_Prtmiocz6gml0b1=
+# Password Reset
+PASSWORD_RESET_CONFIRM_REDIRECT_BASE_URL=https://production:3000/auth/password/reset/confirm
+# Database
+DATABASE_URL=postgres://postgres:admin123@postgres:5432/Beauty-cobs
+# AWS Service
+
+AWS_STORAGE_BUCKET_NAME=beautycops-podcast-bucket
+AWS_S3_REGION_NAME=eu-west-3

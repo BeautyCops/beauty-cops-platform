@@ -1,0 +1,11 @@
+services:
+  nextjs:
+    image: telasttechnologies/beautycops_nextjs_production:production
+    container_name: beautycops-nextjs-production
+    restart: always
+    networks:
+      - nginx_default
+
+networks:
+  nginx_default:
+    external: true
