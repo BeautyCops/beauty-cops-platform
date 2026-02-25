@@ -1,13 +1,20 @@
 "use client";
 
 import type React from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
 
 /* =========================
    Types
    ========================= */
+
+type GCCCountry = {
+  key: "SA" | "AE" | "QA" | "KW" | "BH" | "OM";
+  nameAr: string;
+  dialCode: string;
+  flag: string;
+};
 
 type FieldErrors = {
   phone?: string;
@@ -21,6 +28,17 @@ type TouchedState = {
   email?: boolean;
   password?: boolean;
 };
+
+type LoginMode = "phone" | "email";
+
+const GCC_COUNTRIES: GCCCountry[] = [
+  { key: "SA", nameAr: "المملكة العربية السعودية", dialCode: "+966", flag: "🇸🇦" },
+  { key: "AE", nameAr: "الإمارات", dialCode: "+971", flag: "🇦🇪" },
+  { key: "QA", nameAr: "قطر", dialCode: "+974", flag: "🇶🇦" },
+  { key: "KW", nameAr: "الكويت", dialCode: "+965", flag: "🇰🇼" },
+  { key: "BH", nameAr: "البحرين", dialCode: "+973", flag: "🇧🇭" },
+  { key: "OM", nameAr: "عُمان", dialCode: "+968", flag: "🇴🇲" },
+];
 
 /* =========================
    Helpers: Safe JSON parsing
@@ -69,8 +87,7 @@ function validateEmail(input: string): string | null {
   const tld = parts[parts.length - 1] || "";
   if (tld.length < 2) return "البريد الإلكتروني غير صحيح (امتداد الدومين ناقص)";
 
-  const basic =
-    /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$/;
+  const basic = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$/;
   if (!basic.test(email)) return "البريد الإلكتروني غير صحيح";
 
   return null;
@@ -91,10 +108,7 @@ function mapServerEmailMessage(msg: string): string {
 function mapServerLoginMessage(msg: string): string {
   const m = (msg || "").toLowerCase();
 
-  // شائع في dj-rest-auth / DRF / simplejwt
-  if (m.includes("unable to log in") || m.includes("invalid") || m.includes("incorrect")) {
-    return "بيانات الدخول غير صحيحة";
-  }
+  if (m.includes("unable to log in") || m.includes("invalid") || m.includes("incorrect")) return "بيانات الدخول غير صحيحة";
   if (m.includes("no active account")) return "لا يوجد حساب نشط بهذه البيانات";
   if (m.includes("deactivated") || m.includes("disabled")) return "هذا الحساب غير مفعل";
   if (m.includes("required")) return "الرجاء تعبئة الحقول المطلوبة";
@@ -102,17 +116,15 @@ function mapServerLoginMessage(msg: string): string {
   return msg;
 }
 
-/* =========================
-   Helpers: Extract API errors
-   ========================= */
-
 function extractFieldErrors(data: unknown): FieldErrors {
   const out: FieldErrors = {};
   if (!data || typeof data !== "object") return out;
 
   const d = data as Record<string, unknown>;
 
+  // Common patterns (DRF / custom)
   if (typeof d.detail === "string") out.form = d.detail;
+  if (typeof d.message === "string" && !out.form) out.form = d.message;
 
   for (const key of ["phone", "email", "password"] as const) {
     const v = d[key];
@@ -123,8 +135,7 @@ function extractFieldErrors(data: unknown): FieldErrors {
   const nonField = d.non_field_errors;
   if (Array.isArray(nonField) && nonField[0]) out.form = String(nonField[0]);
 
-  if (!out.form && typeof d.message === "string") out.form = d.message;
-
+  // Friendly mapping
   if (out.email) out.email = mapServerEmailMessage(out.email);
   if (out.form) out.form = mapServerLoginMessage(out.form);
 
@@ -132,13 +143,13 @@ function extractFieldErrors(data: unknown): FieldErrors {
 }
 
 /* =========================
-   Phone validation (نفس الريجستر تقريبًا)
+   Phone validation
    ========================= */
 
-function validatePhoneRaw(input: string): string | null {
+function validatePhoneNational(input: string): string | null {
   const digits = (input || "").replace(/\D/g, "");
   if (!digits) return "الرجاء إدخال رقم الجوال";
-  if (digits.length < 7 || digits.length > 15) return "رقم الجوال غير صحيح";
+  if (digits.length < 7 || digits.length > 12) return "رقم الجوال غير صحيح";
   return null;
 }
 
@@ -150,40 +161,76 @@ export default function LoginPage() {
   const router = useRouter();
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-  const [mode, setMode] = useState<"phone" | "email">("phone");
+  const [mode, setMode] = useState<LoginMode>("phone");
 
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  // Phone mode state
+  const [country, setCountry] = useState<GCCCountry>(GCC_COUNTRIES[0]);
+  const [nationalNumber, setNationalNumber] = useState<string>("");
 
+  // Dropdown state
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  // Email mode state
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+
+  // UI state
   const [touched, setTouched] = useState<TouchedState>({});
-  const [submitted, setSubmitted] = useState(false);
-
-  const [isLoading, setIsLoading] = useState(false);
+  const [submitted, setSubmitted] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errors, setErrors] = useState<FieldErrors>({});
-
-  const resetAlerts = () => setErrors({});
 
   const handleBack = () => router.push("/");
 
-  const handleSwitchMode = (next: "phone" | "email") => {
+  const resetAlerts = () => setErrors({});
+
+  const handleSwitchMode = (next: LoginMode) => {
     setMode(next);
     resetAlerts();
     setTouched({});
     setSubmitted(false);
-    // ما نمسح القيم عشان لو رجع/بدّل بسرعة ما ينهبل
+    setIsOpen(false);
   };
+
+  // Close dropdown when clicking outside + ESC
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      const el = dropdownRef.current;
+      if (!el) return;
+      if (!el.contains(e.target as Node)) setIsOpen(false);
+    };
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsOpen(false);
+    };
+
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  const fullPhone = useMemo(() => {
+    const digits = (nationalNumber || "").replace(/\D/g, "");
+    return `${country.dialCode}${digits}`;
+  }, [country.dialCode, nationalNumber]);
 
   const showPhoneError = (submitted || touched.phone) && !!errors.phone;
   const showEmailError = (submitted || touched.email) && !!errors.email;
   const showPasswordError = (submitted || touched.password) && !!errors.password;
 
   const payload = useMemo(() => {
-    if (mode === "phone") {
-      return { phone };
-    }
+    if (mode === "phone") return { phone: fullPhone };
     return { email: normalizeEmail(email), password };
-  }, [mode, phone, email, password]);
+  }, [mode, fullPhone, email, password]);
+
+  const clearFieldError = (field: keyof FieldErrors) => {
+    setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -195,15 +242,15 @@ export default function LoginPage() {
       return;
     }
 
+    // Frontend validation
     const nextErrors: FieldErrors = {};
 
     if (mode === "phone") {
-      const phoneErr = validatePhoneRaw(phone);
+      const phoneErr = validatePhoneNational(nationalNumber);
       if (phoneErr) nextErrors.phone = phoneErr;
     } else {
       const emailErr = validateEmail(email);
       if (emailErr) nextErrors.email = emailErr;
-
       if (!password) nextErrors.password = "الرجاء إدخال كلمة المرور";
     }
 
@@ -225,13 +272,7 @@ export default function LoginPage() {
 
       if (!res.ok) {
         const serverErrors = extractFieldErrors(data);
-
-        // لو السيرفر رجّع رسالة عامة فقط
-        if (!Object.keys(serverErrors).length) {
-          setErrors({ form: "بيانات الدخول غير صحيحة" });
-        } else {
-          setErrors(serverErrors);
-        }
+        setErrors(Object.keys(serverErrors).length ? serverErrors : { form: "بيانات الدخول غير صحيحة" });
         return;
       }
 
@@ -333,22 +374,86 @@ export default function LoginPage() {
                   <label className="block text-sm md:text-base mb-2 text-right text-natural-primary-text">
                     رقم الجوال <span className="text-status-error mr-0.5">*</span>
                   </label>
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    placeholder="مثال: +9665xxxxxxx"
-                    value={phone}
-                    onChange={(e) => {
-                      setPhone(e.target.value);
-                      if ((submitted || touched.phone) && errors.phone) {
-                        setErrors((p) => ({ ...p, phone: undefined }));
-                      }
-                    }}
-                    onBlur={() => setTouched((p) => ({ ...p, phone: true }))}
-                    className={`w-full h-12 px-4 rounded-lg border ${
-                      showPhoneError ? "border-status-error" : "border-natural-light-border"
-                    }`}
-                  />
+
+                  <div className="relative" ref={dropdownRef}>
+                    <div
+                      className={`flex items-center w-full h-12 border rounded-lg overflow-hidden bg-white ${
+                        showPhoneError ? "border-status-error" : "border-natural-light-border"
+                      }`}
+                    >
+                      {/* Number input */}
+                      <div className="relative flex-1 h-full">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-natural-helper-text pointer-events-none select-none">
+                          {country.dialCode}
+                        </span>
+
+                        <input
+                          type="tel"
+                          inputMode="numeric"
+                          autoComplete="tel-national"
+                          className="w-full h-full pr-4 pl-20 outline-none"
+                          placeholder="أدخل رقم الجوال"
+                          value={nationalNumber}
+                          onChange={(e) => {
+                            setNationalNumber(e.target.value.replace(/\D/g, ""));
+                            if (submitted || touched.phone) clearFieldError("phone");
+                          }}
+                          onBlur={() => setTouched((p) => ({ ...p, phone: true }))}
+                        />
+                      </div>
+
+                      {/* Country dropdown button */}
+                      <button
+                        type="button"
+                        onClick={() => setIsOpen((v) => !v)}
+                        className="h-full px-3 flex items-center gap-2 border-r border-natural-light-border bg-natural-white hover:bg-brand-primary-light-bg transition-colors"
+                        aria-haspopup="listbox"
+                        aria-expanded={isOpen}
+                        aria-controls="country-listbox"
+                        aria-label="اختيار الدولة"
+                        title="اختيار الدولة"
+                      >
+                        <Icon
+                          name="CaretDown"
+                          size={18}
+                          category="arrows"
+                          className={`text-natural-helper-text transition-transform ${isOpen ? "rotate-180" : ""}`}
+                        />
+                        <span className="text-base leading-none">{country.flag}</span>
+                      </button>
+                    </div>
+
+                    {/* Dropdown */}
+                    {isOpen && (
+                      <div
+                        id="country-listbox"
+                        role="listbox"
+                        aria-label="اختر الدولة"
+                        className="absolute z-50 mt-2 w-full rounded-xl border border-natural-light-border bg-white shadow-lg overflow-hidden"
+                      >
+                        {GCC_COUNTRIES.map((c) => (
+                          <button
+                            key={c.key}
+                            type="button"
+                            role="option"
+                            aria-selected={c.key === country.key}
+                            onClick={() => {
+                              setCountry(c);
+                              setIsOpen(false);
+                            }}
+                            className="w-full flex items-center justify-between px-4 py-3 hover:bg-natural-white transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="text-base leading-none">{c.flag}</span>
+                              <span className="text-sm text-natural-primary-text">{c.nameAr}</span>
+                            </div>
+                            <span className="text-sm text-natural-helper-text">{c.dialCode}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   {showPhoneError && <p className="text-status-error text-xs mt-2 text-right">{errors.phone}</p>}
                 </div>
               )}
@@ -360,15 +465,15 @@ export default function LoginPage() {
                     <label className="block text-sm md:text-base mb-2 text-right text-natural-primary-text">
                       البريد الإلكتروني <span className="text-status-error mr-0.5">*</span>
                     </label>
+
                     <input
                       type="email"
+                      autoComplete="email"
                       placeholder="أدخل بريدك الإلكتروني"
                       value={email}
                       onChange={(e) => {
                         setEmail(e.target.value);
-                        if ((submitted || touched.email) && errors.email) {
-                          setErrors((p) => ({ ...p, email: undefined }));
-                        }
+                        if (submitted || touched.email) clearFieldError("email");
                       }}
                       onBlur={() => {
                         setTouched((p) => ({ ...p, email: true }));
@@ -386,15 +491,15 @@ export default function LoginPage() {
                     <label className="block text-sm md:text-base mb-2 text-right text-natural-primary-text">
                       كلمة المرور <span className="text-status-error mr-0.5">*</span>
                     </label>
+
                     <input
                       type="password"
+                      autoComplete="current-password"
                       placeholder="أدخل كلمة المرور"
                       value={password}
                       onChange={(e) => {
                         setPassword(e.target.value);
-                        if ((submitted || touched.password) && errors.password) {
-                          setErrors((p) => ({ ...p, password: undefined }));
-                        }
+                        if (submitted || touched.password) clearFieldError("password");
                       }}
                       onBlur={() => setTouched((p) => ({ ...p, password: true }))}
                       className={`w-full h-12 px-4 rounded-lg border ${
