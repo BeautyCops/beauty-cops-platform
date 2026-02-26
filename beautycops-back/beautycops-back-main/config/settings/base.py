@@ -18,7 +18,8 @@ from django.utils.translation import gettext_lazy as _
 
 env = environ.Env(
     # set casting, default value
-    DEBUG=(bool, False)
+    # DEBUG=(bool, False)++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    DEBUG=(bool, True)
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -37,7 +38,8 @@ FERNET_KEY = env("FERNET_KEY", default="")
 DJANGO_SETTINGS_MODULE = env.str("DJANGO_SETTINGS_MODULE", default="config.settings.production")
 DEBUG = DJANGO_SETTINGS_MODULE in ("config.settings.local", "config.settings.qa")
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
+# ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 DJANGO_APPS = [
