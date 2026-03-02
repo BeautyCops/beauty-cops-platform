@@ -18,12 +18,14 @@ from django.utils.translation import gettext_lazy as _
 
 env = environ.Env(
     # set casting, default value
-    # DEBUG=(bool, False)++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     DEBUG=(bool, True)
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
+
+# Take environment variables from .env file +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+environ.Env.read_env(os.path.join(BASE_DIR, ".env")) 
 
 APP_DIR = BASE_DIR / "beautycops"
 # Quick-start development settings - unsuitable for production
@@ -80,9 +82,9 @@ CONTROLLED_LOCAL_APPS = [
     "beautycops.core",
 ]
 EXPOSED_LOCAL_APPS = [
-    # "beautycops.haircare",
-    # "beautycops.skincare",
-    # "beautycops.makeup",
+    "beautycops.haircare",
+    "beautycops.skincare",
+    "beautycops.makeup",
 ]
 
 LOCAL_APPS = CONTROLLED_LOCAL_APPS + EXPOSED_LOCAL_APPS
@@ -334,3 +336,15 @@ CSP_IMG_SRC = ("'self'", "data:", "cdn.jsdelivr.net")
 DEFAULT_REGION = "EG"
 # password reset
 PASSWORD_RESET_CONFIRM_REDIRECT_BASE_URL = env.str("PASSWORD_RESET_CONFIRM_REDIRECT_BASE_URL", "http://localhost:3000")
+
+
+
+
+# django-cors-headers +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+DEBUG = True
+
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
