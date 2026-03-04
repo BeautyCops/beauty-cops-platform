@@ -78,9 +78,9 @@ CONTROLLED_LOCAL_APPS = [
     "beautycops.core",
 ]
 EXPOSED_LOCAL_APPS = [
-    # "beautycops.haircare",
-    # "beautycops.skincare",
-    # "beautycops.makeup",
+     "beautycops.haircare",
+     "beautycops.skincare",
+    "beautycops.makeup",
 ]
 
 LOCAL_APPS = CONTROLLED_LOCAL_APPS + EXPOSED_LOCAL_APPS
