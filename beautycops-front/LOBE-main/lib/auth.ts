@@ -2,7 +2,11 @@
  * Authentication utility functions
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
+
+function buildApiUrl(path: string): string {
+  return `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
+}
 
 
 /**
@@ -11,6 +15,11 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("authToken");
+}
+
+export function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("refreshToken");
 }
 
 /**
@@ -22,6 +31,15 @@ export function setAuthToken(token: string | null): void {
     localStorage.setItem("authToken", token);
   } else {
     localStorage.removeItem("authToken");
+  }
+}
+
+export function setRefreshToken(token: string | null): void {
+  if (typeof window === "undefined") return;
+  if (token) {
+    localStorage.setItem("refreshToken", token);
+  } else {
+    localStorage.removeItem("refreshToken");
   }
 }
 
@@ -57,6 +75,7 @@ export function setCurrentUser(user: any): void {
 export function clearAuth(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem("authToken");
+  localStorage.removeItem("refreshToken");
   localStorage.removeItem("currentUser");
 }
 
@@ -68,7 +87,7 @@ export async function verifyToken(token?: string): Promise<boolean> {
   if (!authToken) return false;
 
   try {
-    const response = await fetch(`${API_BASE}/auth/token/verify/`, {
+    const response = await fetch(buildApiUrl("/api/auth/token/verify/"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -88,16 +107,16 @@ export async function verifyToken(token?: string): Promise<boolean> {
  * Refresh the auth token
  */
 export async function refreshToken(token?: string): Promise<string | null> {
-  const authToken = token || getAuthToken();
-  if (!authToken) return null;
+  const refresh = token || getRefreshToken();
+  if (!refresh) return null;
 
   try {
-    const response = await fetch(`${API_BASE}/auth/token/refresh/`, {
+    const response = await fetch(buildApiUrl("/api/auth/token/refresh/"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ refresh: authToken }),
+      body: JSON.stringify({ refresh }),
     });
 
     if (!response.ok) return null;
@@ -139,7 +158,7 @@ export async function authenticatedFetch(
   
   // If 401, try to refresh token and retry once
   if (response.status === 401 && token) {
-    const newToken = await refreshToken(token);
+    const newToken = await refreshToken();
     if (newToken) {
       const retryHeaders = {
         ...options.headers,

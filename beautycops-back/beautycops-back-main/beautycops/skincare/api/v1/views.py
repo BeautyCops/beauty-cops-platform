@@ -1,6 +1,7 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, views, viewsets
 from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from beautycops.skincare.api.v1.serializers import (
@@ -14,6 +15,7 @@ from beautycops.utils.functions import get_affiliate_links
 
 
 class SkincareProductViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [AllowAny]
     queryset = (
         SkincareProduct.objects.select_related("brand")
         .prefetch_related(
@@ -29,6 +31,7 @@ class SkincareProductViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class SelectBrandViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    permission_classes = [AllowAny]
     queryset = Brand.objects.all().order_by("name")
     serializer_class = SelectBrandSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
@@ -36,6 +39,7 @@ class SelectBrandViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
 
 class SelectCategoryViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    permission_classes = [AllowAny]
     queryset = Category.objects.all().order_by("name")
     serializer_class = SelectCategorySerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
@@ -43,6 +47,7 @@ class SelectCategoryViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
 
 class SelectProductTypeViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    permission_classes = [AllowAny]
     queryset = ProductType.objects.all().order_by("name")
     serializer_class = SelectProductTypeSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]

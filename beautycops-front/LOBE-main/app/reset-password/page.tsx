@@ -32,11 +32,16 @@ function ResetPasswordPageContent() {
   const router = useRouter();
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+  const buildApiUrl = (path: string) => {
+    const base = (API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
+    return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+  };
+
   const validateResetLink = useCallback(
     async (uidParam: string, tokenParam: string) => {
       try {
         const response = await fetch(
-          `${API_BASE_URL}/auth/password/reset/confirm/${uidParam}/${tokenParam}/`,
+          buildApiUrl(`/api/auth/password/reset/confirm/${uidParam}/${tokenParam}/`),
           {
             method: "GET",
           }
@@ -129,7 +134,7 @@ function ResetPasswordPageContent() {
     try {
       setIsLoading(true);
 
-      const response = await fetch(`${API_BASE_URL}/auth/password/reset/confirm/`, {
+      const response = await fetch(buildApiUrl("/api/auth/password/reset/confirm/"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

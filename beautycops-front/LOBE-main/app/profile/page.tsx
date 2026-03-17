@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
-import { getAuthToken } from "@/lib/auth";
+import { clearAuth, getAuthToken } from "@/lib/auth";
 
 type ProfileData = {
   user_id: number;
@@ -26,6 +26,11 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState<string | null>(null);
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+  const buildApiUrl = (path: string) => {
+    const base = (API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
+    return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+  };
+
   const SKIN_TYPES = [
     { value: "normal", label: "عادية" },
     { value: "dry", label: "جافة" },
@@ -39,10 +44,7 @@ export default function ProfilePage() {
   };
 
   const handleLogout = () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("currentUser");
-    }
+    clearAuth();
     router.push("/login");
   };
 
@@ -71,7 +73,7 @@ export default function ProfilePage() {
         // ثم جلب أحدث البيانات من API
         const token = getAuthToken();
         if (token) {
-          const res = await fetch(`${API_BASE_URL}/auth/user/`, {
+          const res = await fetch(buildApiUrl("/api/auth/user/"), {
             method: "GET",
             headers: {
               "Authorization": `Bearer ${token}`,
@@ -133,7 +135,7 @@ export default function ProfilePage() {
         return;
       }
 
-      const res = await fetch(`${API_BASE_URL}/auth/user/`, {
+      const res = await fetch(buildApiUrl("/api/auth/user/"), {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

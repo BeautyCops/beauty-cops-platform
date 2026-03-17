@@ -27,6 +27,8 @@ export interface HomeFooterProps {
   email?: string;
 }
 
+const STATIC_CURRENT_YEAR = new Date().getFullYear();
+
 /**
  * HomeFooter component
  * Mobile-first design with vertical stacking, responsive for larger screens
@@ -46,7 +48,7 @@ export default function HomeFooter({
   email = "Info@BeautyCops.com",
 }: HomeFooterProps) {
   const router = useRouter();
-  const currentYear = new Date().getFullYear();
+  const currentYear = STATIC_CURRENT_YEAR;
 
   return (
     <footer

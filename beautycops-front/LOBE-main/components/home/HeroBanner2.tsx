@@ -30,12 +30,7 @@ const HeroBanner2 = () => {
               <Button
                 variant="primary"
                 onClick={() => {
-                  const token = localStorage.getItem("authToken");
-                  if (!token) {
-                    router.push("/login");
-                  } else {
-                    router.push("/products");
-                  }
+                  router.push("/products");
                 }}
                 className="!w-fit !px-6 md:!px-8 lg:!px-10 h-[36px] md:h-[44px] lg:h-[48px] text-sm md:text-base lg:text-lg font-[500] rounded-full flex items-center justify-center"
               >

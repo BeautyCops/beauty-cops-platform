@@ -31,11 +31,6 @@ const HeroBanner1 = () => {
               <Button
                 variant="primary"
                 onClick={() => {
-                  const token = localStorage.getItem("authToken"); // Simple auth check
-                  if (!token) {
-                    router.push("/login");
-                    return;
-                  }
                   const searchInput = document.getElementById("home-search-input");
                   if (searchInput) {
                     searchInput.scrollIntoView({ behavior: "smooth", block: "center" });

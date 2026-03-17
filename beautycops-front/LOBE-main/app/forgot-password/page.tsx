@@ -13,6 +13,11 @@ export default function ForgotPasswordPage() {
   const router = useRouter();
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+  const buildApiUrl = (path: string) => {
+    const base = (API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
+    return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -34,7 +39,7 @@ export default function ForgotPasswordPage() {
     try {
       setIsLoading(true);
 
-      const response = await fetch(`${API_BASE_URL}/auth/password/reset/`, {
+      const response = await fetch(buildApiUrl("/api/auth/password/reset/"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

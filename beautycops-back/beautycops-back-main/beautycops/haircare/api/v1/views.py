@@ -1,12 +1,14 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets
 from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.permissions import AllowAny
 
 from beautycops.haircare.api.v1.serializers import HaircareProductSerializer
 from beautycops.haircare.models import HaircareProduct
 
 
 class HaircareProductViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [AllowAny]
     queryset = (
         HaircareProduct.objects.select_related("brand")
         .prefetch_related(

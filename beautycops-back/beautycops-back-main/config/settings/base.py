@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 import os
+import sys
 from pathlib import Path
 
 import environ
@@ -24,6 +25,11 @@ env = environ.Env(
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 
+# Load .env from project root if present (e.g. POSTGRES_*, DATABASE_URL).
+_env_file = BASE_DIR / ".env"
+if _env_file.exists():
+    env.read_env(str(_env_file))
+
 APP_DIR = BASE_DIR / "beautycops"
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
@@ -34,10 +40,17 @@ FERNET_KEY = env("FERNET_KEY", default="")
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DJANGO_SETTINGS_MODULE = env.str("DJANGO_SETTINGS_MODULE", default="config.settings.production")
+# Default to local settings so `manage.py runserver` works out of the box.
+# Production deployments should set DJANGO_SETTINGS_MODULE explicitly.
+DJANGO_SETTINGS_MODULE = env.str("DJANGO_SETTINGS_MODULE", default="config.settings.local")
 DEBUG = DJANGO_SETTINGS_MODULE in ("config.settings.local", "config.settings.qa")
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
+# Local development convenience: allow running without env secrets.
+if DEBUG and not SECRET_KEY:
+    SECRET_KEY = "dev-insecure-secret-key"
+
+# Provide safe local defaults; production should override via env.
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
 # Application definition
 DJANGO_APPS = [
@@ -72,6 +85,11 @@ THIRD_PARTY_APPS = [
     "auditlog",
     "fcm_django",
 ]
+
+# Python 3.12 removed `distutils`; some third-party packages still import it.
+# Disable incompatible optional apps in local/dev environments so `runserver` works.
+if sys.version_info >= (3, 12):
+    THIRD_PARTY_APPS = [app for app in THIRD_PARTY_APPS if app != "notifications"]
 
 CONTROLLED_LOCAL_APPS = [
     "beautycops.users",
@@ -328,7 +346,8 @@ CSP_IMG_SRC = ("'self'", "data:")
 # Option: CDN
 CSP_DEFAULT_SRC = ("'self'", "'unsafe-inline'", "cdn.jsdelivr.net")
 CSP_IMG_SRC = ("'self'", "data:", "cdn.jsdelivr.net")
-# django-phonenumber-field
-DEFAULT_REGION = "EG"
+# django-phonenumber-field (Saudi Arabia: accept 05..., 5..., 966..., +966..., 00966...)
+PHONENUMBER_DEFAULT_REGION = "SA"
+DEFAULT_REGION = "SA"
 # password reset
 PASSWORD_RESET_CONFIRM_REDIRECT_BASE_URL = env.str("PASSWORD_RESET_CONFIRM_REDIRECT_BASE_URL", "http://localhost:3000")

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { HomeFooter, MainNavbar } from "@/components";
 import BottomNavbar from "@/components/BottomNavbar";
-import { authenticatedFetch } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +34,7 @@ type HaircareProduct = {
 
 type AllProducts = SkincareProduct | MakeupProduct | HaircareProduct;
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
 
 type PaginatedPayload<T> = {
   results: T[];
@@ -88,20 +87,33 @@ function extractPaginated<T>(payload: unknown): PaginatedPayload<T> | null {
   };
 }
 
+// Use plain fetch for product lists so expired/invalid JWT doesn't cause 401 (backend AllowAny).
 async function fetchPaginatedOnce<T>(
   url: string,
   signal?: AbortSignal
 ): Promise<{ items: T[]; next: string | null; count?: number; maxPages?: number }> {
-  const res = await authenticatedFetch(url, signal ? { signal } : {});
+  const opts: RequestInit = signal ? { signal } : {};
+  let res: Response;
+  try {
+    res = await fetch(url, opts);
+  } catch (networkErr) {
+    console.error("Products API network error:", url, networkErr);
+    const isConnectionRefused =
+      networkErr instanceof TypeError &&
+      (String((networkErr as Error).message).includes("Failed to fetch") ||
+        String((networkErr as Error).message).includes("Load failed"));
+    throw new Error(
+      isConnectionRefused
+        ? "لا يمكن الاتصال بالخادم. تأكد من تشغيل الخادم (Django) على http://localhost:8000"
+        : "فشل في تحميل المنتجات"
+    );
+  }
   if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    console.error("Products API error:", res.status, url, data);
     if (res.status === 400 || res.status === 404) {
-      const data = await res.json().catch(() => null);
-      console.warn("Pagination invalid page:", url, data);
       return { items: [], next: null };
     }
-
-    const data = await res.json().catch(() => null);
-    console.error("Pagination fetch failed:", url, data);
     throw new Error("فشل في تحميل المنتجات");
   }
 
@@ -153,26 +165,8 @@ export default function ProductsPage() {
 }
 
 function AuthenticatedProductsPage() {
-  const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // Check authentication status
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("authToken");
-      if (!token) {
-        router.push('/login');
-        return;
-      }
-      setIsAuthenticated(true);
-    }
-  }, [router]);
-
-  // Return early if not authenticated to prevent any API calls
-  if (!isAuthenticated) {
-    return null;
-  }
-
+  // Products page is public: API allows unauthenticated access (AllowAny).
+  // No redirect to login; products load for everyone.
   return <ProductsPageContent />;
 }
 
@@ -209,6 +203,7 @@ function ProductsPageContent() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   // Initialize search from URL on mount
   const [searchQuery, setSearchQuery] = useState(() => {
@@ -260,7 +255,7 @@ function ProductsPageContent() {
   useEffect(() => {
     async function fetchBrands() {
       try {
-        const res = await authenticatedFetch(`${API_BASE}/v1/skincare/select_brands/`);
+        const res = await fetch(`${API_BASE}/api/v1/skincare/select_brands/`);
         if (res.ok) {
           const data = await res.json();
           if (data && Array.isArray(data.results)) {
@@ -311,9 +306,9 @@ function ProductsPageContent() {
           : "";
         const brandParam = selectedBrand !== "all" ? `&brand=${selectedBrand}` : "";
 
-        const skincareUrl = `${API_BASE}/v1/skincare/skincare_products/?page=${requestedPage}&size=${backendPageSize}${searchParam}${brandParam}`;
-        const makeupUrl = `${API_BASE}/v1/makeup/makeup_products/?page=${requestedPage}&size=${backendPageSize}${searchParam}${brandParam}`;
-        const haircareUrl = `${API_BASE}/v1/haircare/haircare_products/?page=${requestedPage}&size=${backendPageSize}${searchParam}${brandParam}`;
+        const skincareUrl = `${API_BASE}/api/v1/skincare/skincare_products/?page=${requestedPage}&size=${backendPageSize}${searchParam}${brandParam}`;
+        const makeupUrl = `${API_BASE}/api/v1/makeup/makeup_products/?page=${requestedPage}&size=${backendPageSize}${searchParam}${brandParam}`;
+        const haircareUrl = `${API_BASE}/api/v1/haircare/haircare_products/?page=${requestedPage}&size=${backendPageSize}${searchParam}${brandParam}`;
 
         const [skincareFirst, makeupFirst, haircareFirst] = await Promise.all([
           fetchPaginatedOnce<SkincareProduct>(skincareUrl, controller.signal),
@@ -365,7 +360,8 @@ function ProductsPageContent() {
           return;
         }
         console.error("خطأ في جلب المنتجات:", err);
-        if (!shouldAbort()) setError("فشل تحميل المنتجات. حاول مرة أخرى.");
+        if (!shouldAbort())
+          setError(err instanceof Error ? err.message : "فشل تحميل المنتجات. حاول مرة أخرى.");
       } finally {
         if (!shouldAbort()) setLoading(false);
       }
@@ -377,7 +373,7 @@ function ProductsPageContent() {
       cancelled = true;
       controller.abort();
     };
-  }, [pageParam, activeSearchQuery, selectedBrand]);
+  }, [pageParam, activeSearchQuery, selectedBrand, retryKey]);
 
   const allProducts: AllProducts[] = useMemo(
     () => [...skincare, ...makeup, ...haircare],
@@ -441,8 +437,15 @@ function ProductsPageContent() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
-            <p className="text-red-600">{error}</p>
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-red-600 flex-1">{error}</p>
+            <button
+              type="button"
+              onClick={() => { setError(null); setRetryKey((k) => k + 1); }}
+              className="flex-shrink-0 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
+            >
+              حاول مرة أخرى
+            </button>
           </div>
         )}
 
