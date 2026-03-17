@@ -22,9 +22,8 @@ import { ChevronLeft } from "lucide-react";
 import HeroBanner1 from "@/components/home/HeroBanner1";
 import HeroBanner2 from "@/components/home/HeroBanner2";
 import BottomNavbar from "@/components/BottomNavbar";
-import { authenticatedFetch } from "@/lib/auth";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
 
 type SearchSuggestion = {
   id: number;
@@ -50,12 +49,8 @@ const Home = () => {
   const searchDropdownRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
 
-  // Handle search focus - redirect to login if not authenticated
+  // Public: allow searching without login
   const handleSearchFocus = () => {
-    if (!isLogin) {
-      router.push('/login');
-      return;
-    }
     setSearchDropdownOpen(true);
   };
 
@@ -96,14 +91,9 @@ const Home = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch most searched products - ONLY IF LOGIN
+  // Fetch most searched products (public)
   useEffect(() => {
     async function fetchMostSearchedProducts() {
-      if (!isLogin) {
-        setProductsLoading(false);
-        return;
-      }
-
       try {
         setProductsLoading(true);
 
@@ -117,8 +107,8 @@ const Home = () => {
         const results = await Promise.all(
           targetProducts.map(async (p) => {
             try {
-              const res = await authenticatedFetch(
-                `${API_BASE}/v1/${p.category}/${p.category}_products/${p.id}/`
+              const res = await fetch(
+                `${API_BASE}/api/v1/${p.category}/${p.category}_products/${p.id}/`
               );
               if (!res.ok) return null;
               const data = await res.json();
@@ -151,15 +141,8 @@ const Home = () => {
     fetchMostSearchedProducts();
   }, [isLogin]);
 
-  // Search suggestions effect - ONLY IF LOGIN
+  // Search suggestions effect (public)
   useEffect(() => {
-    // Don't search if not logged in
-    if (!isLogin) {
-      setSearchSuggestions([]);
-      setSearchLoading(false);
-      return;
-    }
-
     const q = searchQuery.trim();
     if (q.length < 2) {
       setSearchSuggestions([]);
@@ -172,9 +155,9 @@ const Home = () => {
       setSearchLoading(true);
       try {
         const [skincareRes, makeupRes, haircareRes] = await Promise.all([
-          authenticatedFetch(`${API_BASE}/v1/skincare/skincare_products/?page=1&size=10&search=${encodeURIComponent(q)}`, { signal: controller.signal }),
-          authenticatedFetch(`${API_BASE}/v1/makeup/makeup_products/?page=1&size=10&search=${encodeURIComponent(q)}`, { signal: controller.signal }),
-          authenticatedFetch(`${API_BASE}/v1/haircare/haircare_products/?page=1&size=10&search=${encodeURIComponent(q)}`, { signal: controller.signal }),
+          fetch(`${API_BASE}/api/v1/skincare/skincare_products/?page=1&size=10&search=${encodeURIComponent(q)}`, { signal: controller.signal }),
+          fetch(`${API_BASE}/api/v1/makeup/makeup_products/?page=1&size=10&search=${encodeURIComponent(q)}`, { signal: controller.signal }),
+          fetch(`${API_BASE}/api/v1/haircare/haircare_products/?page=1&size=10&search=${encodeURIComponent(q)}`, { signal: controller.signal }),
         ]);
 
         const [skincareData, makeupData, haircareData] = await Promise.all([

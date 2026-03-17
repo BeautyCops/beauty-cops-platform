@@ -9,8 +9,7 @@ export default function RegisterPage() {
   const router = useRouter();
 
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [emailOrPhone, setEmailOrPhone] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -18,6 +17,26 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+  const buildApiUrl = (path: string) => {
+    // Fallback for local dev if env var isn't set.
+    const base = (API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
+    return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+  };
+
+  const extractErrorMessage = (data: unknown): string | null => {
+    if (!data || typeof data !== "object") return null;
+    const obj = data as Record<string, unknown>;
+    if (typeof obj.detail === "string" && obj.detail.trim()) return obj.detail;
+
+    // DRF often returns field errors like: { email: ["..."], phone: ["..."] }
+    const firstKey = Object.keys(obj)[0];
+    if (!firstKey) return null;
+    const v = obj[firstKey];
+    if (typeof v === "string") return v;
+    if (Array.isArray(v) && typeof v[0] === "string") return v[0];
+    return null;
+  };
 
   const handleBack = () => {
     router.push('/');
@@ -39,18 +58,41 @@ export default function RegisterPage() {
     return null;
   };
 
+  const validateEmailOrPhone = (v: string): string | null => {
+    const trimmed = (v || "").trim();
+    if (!trimmed) return "الرجاء إدخال البريد الإلكتروني أو رقم الجوال";
+
+    if (trimmed.includes("@")) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmed)) return "البريد الإلكتروني غير صحيح";
+      return null;
+    }
+
+    // Phone: allow Saudi formats (05..., 5..., 966..., +966..., 00966...); backend validates.
+    const phoneCandidate = trimmed.replace(/\s+/g, "");
+    const phoneRegex = /^[+\d][\d]{7,20}$/;
+    if (!phoneRegex.test(phoneCandidate)) return "رقم الجوال غير صحيح";
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
 
-    if (!name || !email || !phoneNumber || !password || !passwordConfirm) {
+    if (!name || !emailOrPhone || !password || !passwordConfirm) {
       setError("الرجاء تعبئة جميع الحقول المطلوبة");
       return;
     }
 
     if (password !== passwordConfirm) {
       setError("كلمتا المرور غير متطابقتين");
+      return;
+    }
+
+    const loginError = validateEmailOrPhone(emailOrPhone);
+    if (loginError) {
+      setError(loginError);
       return;
     }
 
@@ -63,22 +105,21 @@ export default function RegisterPage() {
     try {
       setIsLoading(true);
 
-      const response = await fetch(`${API_BASE_URL}/auth/registration/`, {
+      const response = await fetch(buildApiUrl("/api/auth/registration/"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           name,
-          email,
+          email_or_phone: emailOrPhone.trim(),
           password,
-          phone: phoneNumber,
         }),
       });
 
       if (!response.ok) {
         const data = await response.json().catch(() => null);
-        setError(data?.detail || "فشل إنشاء الحساب");
+        setError(extractErrorMessage(data) || "فشل إنشاء الحساب");
         return;
       }
 
@@ -199,41 +240,21 @@ export default function RegisterPage() {
                 />
               </div>
 
-              {/* البريد */}
+              {/* البريد الإلكتروني أو رقم الجوال */}
               <div className="w-full">
                 <label
-                  htmlFor="email"
+                  htmlFor="emailOrPhone"
                   className="block text-sm md:text-base mb-2 text-right text-natural-primary-text"
                 >
-                  البريد الإلكتروني
+                  البريد الإلكتروني أو رقم الجوال
                   <span className="text-status-error mr-0.5">*</span>
                 </label>
                 <input
-                  id="email"
-                  type="email"
-                  placeholder="أدخل بريدك الإلكتروني"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full h-12 px-4 border border-natural-light-border rounded-lg"
-                />
-              </div>
-
-              {/* رقم الجوال */}
-              <div className="w-full">
-                <label
-                  htmlFor="phone"
-                  className="block text-sm md:text-base mb-2 text-right text-natural-primary-text"
-                >
-                  رقم الجوال
-                  <span className="text-status-error mr-0.5">*</span>
-                </label>
-                <input
-                  id="phone"
-                  type="tel"
-                  placeholder="مثال: +9665xxxxxxx"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  id="emailOrPhone"
+                  type="text"
+                  placeholder="مثال: name@email.com أو 0501234567 أو 966501234567"
+                  value={emailOrPhone}
+                  onChange={(e) => setEmailOrPhone(e.target.value)}
                   required
                   className="w-full h-12 px-4 border border-natural-light-border rounded-lg"
                 />

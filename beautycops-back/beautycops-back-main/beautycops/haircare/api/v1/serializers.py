@@ -8,7 +8,7 @@ class HaircareProductSerializer(serializers.ModelSerializer):
     # نطلع اسم البراند بدل الـ id
     brand_name = serializers.CharField(source="brand.name", read_only=True, allow_null=True)
     # حقول الأمان + قائمة المكوّنات
-    safety_score = serializers.IntegerField(read_only=True)
+    safety_score = serializers.FloatField(read_only=True, allow_null=True)
     safety_category = serializers.CharField(read_only=True)
     ingredients = IngredientInlineSerializer(many=True, read_only=True, source="product_ingredients")
 

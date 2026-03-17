@@ -1,12 +1,14 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets
 from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.permissions import AllowAny
 
 from beautycops.makeup.api.v1.serializers import MakeupProductSerializer
 from beautycops.makeup.models import MakeupProduct
 
 
 class MakeupProductViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [AllowAny]
     queryset = MakeupProduct.objects.select_related("brand").order_by("makeup_id")
     serializer_class = MakeupProductSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]

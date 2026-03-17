@@ -4,9 +4,10 @@ import type React from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
+import { setAuthToken, setCurrentUser, setRefreshToken } from "@/lib/auth";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [emailOrPhone, setEmailOrPhone] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -14,29 +15,47 @@ export default function LoginPage() {
   const router = useRouter();
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+  const buildApiUrl = (path: string) => {
+    // Fallback for local dev if env var isn't set.
+    const base = (API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
+    return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+  };
+
+  const extractErrorMessage = (data: unknown): string | null => {
+    if (!data || typeof data !== "object") return null;
+    const obj = data as Record<string, unknown>;
+    if (typeof obj.detail === "string" && obj.detail.trim()) return obj.detail;
+    const firstKey = Object.keys(obj)[0];
+    if (!firstKey) return null;
+    const v = obj[firstKey];
+    if (typeof v === "string") return v;
+    if (Array.isArray(v) && typeof v[0] === "string") return v[0];
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 
-    if (!email || !password) {
-      setError("الرجاء إدخال البريد الإلكتروني وكلمة المرور");
+    if (!emailOrPhone || !password) {
+      setError("الرجاء إدخال البريد الإلكتروني أو رقم الجوال وكلمة المرور");
       return;
     }
 
     try {
       setIsLoading(true);
 
-      const response = await fetch(`${API_BASE_URL}/auth/login/`, {
+      const response = await fetch(buildApiUrl("/api/auth/login/"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ login: emailOrPhone.trim(), password }),
       });
 
       if (!response.ok) {
         const data = await response.json().catch(() => null);
-        setError(data?.detail || "بيانات الدخول غير صحيحة");
+        setError(extractErrorMessage(data) || "بيانات الدخول غير صحيحة");
         setIsLoading(false);
         return;
       }
@@ -48,12 +67,17 @@ export default function LoginPage() {
       if (typeof window !== "undefined") {
         const token = data.token || data.access_token || data.access || null;
         if (token) {
-          localStorage.setItem("authToken", token);
+          setAuthToken(token);
+        }
+
+        const refresh = data.refresh || data.refresh_token || null;
+        if (refresh) {
+          setRefreshToken(refresh);
         }
 
         const user = data.user || data.data || null;
         if (user) {
-          localStorage.setItem("currentUser", JSON.stringify(user));
+          setCurrentUser(user);
         }
       }
 
@@ -137,18 +161,18 @@ export default function LoginPage() {
               {/* Email */}
               <div className="w-full">
                 <label
-                  htmlFor="email"
+                  htmlFor="emailOrPhone"
                   className="block text-sm md:text-base mb-2 text-right text-natural-primary-text"
                 >
-                  البريد الإلكتروني
+                  البريد الإلكتروني أو رقم الجوال
                   <span className="text-status-error mr-0.5">*</span>
                 </label>
                 <input
-                  id="email"
-                  type="email"
-                  placeholder="أدخل بريدك الإلكتروني"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="emailOrPhone"
+                  type="text"
+                  placeholder="مثال: name@email.com أو 0501234567 أو 966501234567"
+                  value={emailOrPhone}
+                  onChange={(e) => setEmailOrPhone(e.target.value)}
                   required
                   className="w-full h-12 px-4 border border-natural-light-border rounded-lg"
                 />

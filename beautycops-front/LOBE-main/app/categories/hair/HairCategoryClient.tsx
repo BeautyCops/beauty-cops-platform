@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { HomeFooter, MainNavbar, PageHeader } from "@/components";
-import { authenticatedFetch } from "@/lib/auth";
 
 type HairProduct = {
   haircare_id: number;
@@ -15,12 +14,11 @@ type HairProduct = {
   safety_score: number | null;
 };
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
-const HAIR_ENDPOINT = `${API_BASE}/v1/haircare/haircare_products/`;
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
+const HAIR_ENDPOINT = `${API_BASE}/api/v1/haircare/haircare_products/`;
 
 async function getHairProducts(): Promise<HairProduct[]> {
-  const res = await authenticatedFetch(HAIR_ENDPOINT, {
+  const res = await fetch(HAIR_ENDPOINT, {
     cache: "no-store",
   });
 

@@ -2,6 +2,20 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+from pathlib import Path
+
+# Load .env from project root before Django so POSTGRES_* etc. are available to settings.
+_project_root = Path(__file__).resolve().parent
+_env_file = _project_root / ".env"
+if _env_file.exists():
+    with open(_env_file, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, _, value = line.partition("=")
+                key, value = key.strip(), value.strip()
+                if key:
+                    os.environ[key] = value
 
 from config.settings.base import DJANGO_SETTINGS_MODULE
 

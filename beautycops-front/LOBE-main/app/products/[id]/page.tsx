@@ -9,11 +9,10 @@ import Link from "next/link";
 import { sephoraLogo, amazonLogo, niceoneLogo } from "@/assets";
 import BottomNavbar from "@/components/BottomNavbar";
 import { ChevronRight } from "lucide-react";
-import { authenticatedFetch } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
 
 // ========= أنواع الداتا من الـ API =========
 
@@ -302,8 +301,8 @@ function ProductDetailsPageContent({ params }: PageProps) {
   ): Promise<{ product: UnifiedProduct; ingredients: Ingredient[] } | null> => {
     const pathSegment = category === "hair" ? "haircare" : category;
 
-    const res = await authenticatedFetch(
-      `${API_BASE_URL}/v1/${pathSegment}/${pathSegment}_products/${productId}/`
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/${pathSegment}/${pathSegment}_products/${productId}/`
     );
 
     if (res.status === 404) return null;
@@ -317,8 +316,8 @@ function ProductDetailsPageContent({ params }: PageProps) {
     if (true) {
       try {
         console.log(`Fetching affiliate links for ID: ${productId} [${category}]`);
-        const affRes = await authenticatedFetch(
-          `${API_BASE_URL}/v1/${pathSegment}/product_affiliate_links/${productId}/`
+        const affRes = await fetch(
+          `${API_BASE_URL}/api/v1/${pathSegment}/product_affiliate_links/${productId}/`
         );
         console.log(`Affiliate ID: ${productId} Status: ${affRes.status}`);
 
@@ -381,8 +380,8 @@ function ProductDetailsPageContent({ params }: PageProps) {
       };
 
       const mappedIngredients: Ingredient[] = (d.ingredients ?? []).map(
-        (ing) => ({
-          id: ing.ingredient_id ?? ing.id ?? Math.floor(Math.random() * 1e12),
+        (ing, index) => ({
+          id: ing.ingredient_id ?? ing.id ?? index,
           name: ing.name,
           safetyScore: toNumberOrNull(ing.risk_score),
           description: ing.description,
@@ -407,8 +406,8 @@ function ProductDetailsPageContent({ params }: PageProps) {
       };
 
       const mappedIngredients: Ingredient[] = (d.ingredients ?? []).map(
-        (ing) => ({
-          id: ing.ingredient_id ?? ing.id ?? Math.floor(Math.random() * 1e12),
+        (ing, index) => ({
+          id: ing.ingredient_id ?? ing.id ?? index,
           name: ing.name,
           safetyScore: toNumberOrNull(ing.risk_score),
           description: ing.description,
@@ -432,12 +431,14 @@ function ProductDetailsPageContent({ params }: PageProps) {
       affiliate_links: affiliateLinks,
     };
 
-    const mappedIngredients: Ingredient[] = (d.ingredients ?? []).map((ing) => ({
-      id: ing.ingredient_id ?? ing.id ?? Math.floor(Math.random() * 1e12),
-      name: ing.name,
-      safetyScore: toNumberOrNull(ing.risk_score),
-      description: ing.description,
-    }));
+    const mappedIngredients: Ingredient[] = (d.ingredients ?? []).map(
+      (ing, index) => ({
+        id: ing.ingredient_id ?? ing.id ?? index,
+        name: ing.name,
+        safetyScore: toNumberOrNull(ing.risk_score),
+        description: ing.description,
+      })
+    );
 
     return { product: unified, ingredients: mappedIngredients };
   }, [productId]);

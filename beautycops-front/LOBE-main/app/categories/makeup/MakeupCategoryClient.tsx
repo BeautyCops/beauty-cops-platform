@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { HomeFooter, MainNavbar, PageHeader } from "@/components";
-import { authenticatedFetch } from "@/lib/auth";
 
 type MakeupProduct = {
   makeup_id: number;
@@ -17,13 +16,12 @@ type MakeupProduct = {
   brand_name: string | null;
 };
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
 
-// لو رابط الميكب مختلف عدّليه هنا
-const MAKEUP_ENDPOINT = `${API_BASE_URL}/v1/makeup/makeup_products/`;
+const MAKEUP_ENDPOINT = `${API_BASE_URL}/api/v1/makeup/makeup_products/`;
 
 async function getMakeupProducts(): Promise<MakeupProduct[]> {
-  const res = await authenticatedFetch(MAKEUP_ENDPOINT, {
+  const res = await fetch(MAKEUP_ENDPOINT, {
     cache: "no-store",
   });
 

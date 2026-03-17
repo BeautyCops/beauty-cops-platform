@@ -23,10 +23,13 @@ services:
       dockerfile: ./docker/local/postgres/Dockerfile
     image: beautycops_local_postgres
     container_name: beautycops_local_postgres
+    ports:
+      - "5433:5432"  # 5433 on host to avoid conflict with local PostgreSQL
     volumes:
       - beautycops_local_postgres_data:/var/lib/postgresql/data
       - beautycops_local_postgres_data_backups:/backups
-      - ./docker/local/postgres/init-db.d/dump.sql:/docker-entrypoint-initdb.d/01_dump.sql:ro
+      # Dump has COPY error in product_ingredients (line ~28100). Uncomment when fixed:
+      # - ./docker/local/postgres/init-db.d/dump.sql:/docker-entrypoint-initdb.d/01_dump.sql:ro
     env_file:
       - ./docker/.envs/.local/.postgres
 

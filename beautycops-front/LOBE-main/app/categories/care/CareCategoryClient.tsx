@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { HomeFooter, MainNavbar, PageHeader } from "@/components";
-import { authenticatedFetch } from "@/lib/auth";
 
 type SkincareProduct = {
   skincare_id: number;
@@ -17,8 +16,8 @@ type SkincareProduct = {
   brand_name: string | null;
 };
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-const SKINCARE_ENDPOINT = `${API_BASE_URL}/v1/skincare/skincare_products/`;
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
+const SKINCARE_ENDPOINT = `${API_BASE_URL}/api/v1/skincare/skincare_products/`;
 
 function extractList<T>(payload: unknown): T[] {
   if (Array.isArray(payload)) return payload as T[];
@@ -36,7 +35,7 @@ function extractList<T>(payload: unknown): T[] {
 }
 
 async function getSkincareProducts(): Promise<SkincareProduct[]> {
-  const res = await authenticatedFetch(SKINCARE_ENDPOINT, {
+  const res = await fetch(SKINCARE_ENDPOINT, {
     cache: "no-store",
   });
 

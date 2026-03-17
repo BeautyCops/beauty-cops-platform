@@ -8,7 +8,6 @@ import Link from "next/link";
 import { favouriteBanner } from "@/assets";
 import { ChevronRight } from "lucide-react";
 import BottomNavbar from "@/components/BottomNavbar";
-import { authenticatedFetch } from "@/lib/auth";
 
 interface FavoriteProduct {
   id: number;
@@ -56,8 +55,8 @@ export default function FavoritesPage() {
               favoritesData.map(async (fav) => {
                 try {
                   const pathSegment = fav.category === "hair" ? "haircare" : fav.category;
-                  const res = await authenticatedFetch(
-                    `${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/${pathSegment}/${pathSegment}_products/${fav.id}/`
+                  const res = await fetch(
+                    `${(process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "")}/api/v1/${pathSegment}/${pathSegment}_products/${fav.id}/`
                   );
 
                   if (res.ok) {
@@ -106,8 +105,8 @@ export default function FavoritesPage() {
               favoritesData.map(async (fav) => {
                 try {
                   const pathSegment = fav.category === "hair" ? "haircare" : fav.category;
-                  const res = await authenticatedFetch(
-                    `${process.env.NEXT_PUBLIC_API_BASE_URL}/v1/${pathSegment}/${pathSegment}_products/${fav.id}/`
+                  const res = await fetch(
+                    `${(process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "")}/api/v1/${pathSegment}/${pathSegment}_products/${fav.id}/`
                   );
 
                   if (res.ok) {
