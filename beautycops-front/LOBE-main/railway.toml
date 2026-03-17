@@ -1,0 +1,5 @@
+# Force Railway to use the Dockerfile so the build runs in a Node.js image.
+# Without this, Railpack can run in an environment where `npm` is not available.
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
