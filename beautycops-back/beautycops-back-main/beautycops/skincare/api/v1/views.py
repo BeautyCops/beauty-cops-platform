@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from beautycops.skincare.api.v1.serializers import (
+    AffiliateLinkSerializer,
     SelectBrandSerializer,
     SelectCategorySerializer,
     SelectProductTypeSerializer,
@@ -12,6 +13,7 @@ from beautycops.skincare.api.v1.serializers import (
 )
 from beautycops.skincare.models import Brand, Category, ProductType, SkincareProduct
 from beautycops.utils.functions import get_affiliate_links
+from drf_spectacular.utils import extend_schema
 
 
 class SkincareProductViewSet(viewsets.ReadOnlyModelViewSet):
@@ -55,6 +57,19 @@ class SelectProductTypeViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
 
 class ProductAffiliateLinks(views.APIView):
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "product_id": {"type": "integer"},
+                    "affiliate_links": AffiliateLinkSerializer(many=True),
+                },
+            }
+        }
+    )
     def get(self, request, product_id):
         links = get_affiliate_links(product_id, marketplace="SA")
         return Response({"product_id": product_id, "affiliate_links": links})
