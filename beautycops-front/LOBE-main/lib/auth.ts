@@ -2,11 +2,7 @@
  * Authentication utility functions
  */
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
-
-function buildApiUrl(path: string): string {
-  return `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
-}
+import { apiUrl } from "@/lib/apiBase";
 
 
 /**
@@ -87,7 +83,7 @@ export async function verifyToken(token?: string): Promise<boolean> {
   if (!authToken) return false;
 
   try {
-    const response = await fetch(buildApiUrl("/api/auth/token/verify/"), {
+    const response = await fetch(apiUrl("/api/auth/token/verify/"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -111,7 +107,7 @@ export async function refreshToken(token?: string): Promise<string | null> {
   if (!refresh) return null;
 
   try {
-    const response = await fetch(buildApiUrl("/api/auth/token/refresh/"), {
+    const response = await fetch(apiUrl("/api/auth/token/refresh/"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

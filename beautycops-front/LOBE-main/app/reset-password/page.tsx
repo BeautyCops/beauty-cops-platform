@@ -4,6 +4,7 @@ import type React from "react";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
+import { apiUrl, describeFetchFailure } from "@/lib/apiBase";
 
 export const dynamic = "force-dynamic";
 
@@ -30,18 +31,11 @@ function ResetPasswordPageContent() {
   const [uid, setUid] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const router = useRouter();
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  const buildApiUrl = (path: string) => {
-    const base = (API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
-    return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
-  };
-
   const validateResetLink = useCallback(
     async (uidParam: string, tokenParam: string) => {
       try {
         const response = await fetch(
-          buildApiUrl(`/api/auth/password/reset/confirm/${uidParam}/${tokenParam}/`),
+          apiUrl(`/api/auth/password/reset/confirm/${uidParam}/${tokenParam}/`),
           {
             method: "GET",
           }
@@ -51,11 +45,11 @@ function ResetPasswordPageContent() {
           setError("رابط إعادة تعيين كلمة المرور غير صحيح أو منتهي الصلاحية");
         }
       } catch (err) {
-        console.error(err);
-        setError("حدث خطأ في التحقق من الرابط");
+        console.error("[reset-password validate]", err);
+        setError(describeFetchFailure(err));
       }
     },
-    [API_BASE_URL]
+    []
   );
 
   useEffect(() => {
@@ -134,7 +128,7 @@ function ResetPasswordPageContent() {
     try {
       setIsLoading(true);
 
-      const response = await fetch(buildApiUrl("/api/auth/password/reset/confirm/"), {
+      const response = await fetch(apiUrl("/api/auth/password/reset/confirm/"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -162,8 +156,8 @@ function ResetPasswordPageContent() {
         router.push("/login");
       }, 2000);
     } catch (err) {
-      console.error(err);
-      setError("حدث خطأ غير متوقع، الرجاء المحاولة لاحقاً");
+      console.error("[reset-password submit]", err);
+      setError(describeFetchFailure(err));
     } finally {
       setIsLoading(false);
     }

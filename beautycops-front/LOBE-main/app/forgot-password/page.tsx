@@ -4,6 +4,7 @@ import type React from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
+import { apiUrl, describeFetchFailure } from "@/lib/apiBase";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -11,13 +12,6 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const router = useRouter();
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  const buildApiUrl = (path: string) => {
-    const base = (API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
-    return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
-  };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -39,7 +33,7 @@ export default function ForgotPasswordPage() {
     try {
       setIsLoading(true);
 
-      const response = await fetch(buildApiUrl("/api/auth/password/reset/"), {
+      const response = await fetch(apiUrl("/api/auth/password/reset/"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -63,8 +57,8 @@ export default function ForgotPasswordPage() {
         router.push("/forgot-password/success");
       }, 2000);
     } catch (err) {
-      console.error(err);
-      setError("حدث خطأ غير متوقع، الرجاء المحاولة لاحقاً");
+      console.error("[forgot-password]", err);
+      setError(describeFetchFailure(err));
     } finally {
       setIsLoading(false);
     }

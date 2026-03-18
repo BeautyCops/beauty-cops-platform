@@ -8,6 +8,7 @@ import Link from "next/link";
 import { favouriteBanner } from "@/assets";
 import { ChevronRight } from "lucide-react";
 import BottomNavbar from "@/components/BottomNavbar";
+import { apiUrl } from "@/lib/apiBase";
 
 interface FavoriteProduct {
   id: number;
@@ -56,7 +57,7 @@ export default function FavoritesPage() {
                 try {
                   const pathSegment = fav.category === "hair" ? "haircare" : fav.category;
                   const res = await fetch(
-                    `${(process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "")}/api/v1/${pathSegment}/${pathSegment}_products/${fav.id}/`
+                    apiUrl(`/api/v1/${pathSegment}/${pathSegment}_products/${fav.id}/`)
                   );
 
                   if (res.ok) {
@@ -106,7 +107,7 @@ export default function FavoritesPage() {
                 try {
                   const pathSegment = fav.category === "hair" ? "haircare" : fav.category;
                   const res = await fetch(
-                    `${(process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "")}/api/v1/${pathSegment}/${pathSegment}_products/${fav.id}/`
+                    apiUrl(`/api/v1/${pathSegment}/${pathSegment}_products/${fav.id}/`)
                   );
 
                   if (res.ok) {

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
 import { setAuthToken, setCurrentUser, setRefreshToken } from "@/lib/auth";
+import { apiUrl, describeFetchFailure } from "@/lib/apiBase";
 
 export default function LoginPage() {
   const [emailOrPhone, setEmailOrPhone] = useState("");
@@ -13,13 +14,6 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  const buildApiUrl = (path: string) => {
-    // Fallback for local dev if env var isn't set.
-    const base = (API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
-    return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
-  };
 
   const extractErrorMessage = (data: unknown): string | null => {
     if (!data || typeof data !== "object") return null;
@@ -45,7 +39,7 @@ export default function LoginPage() {
     try {
       setIsLoading(true);
 
-      const response = await fetch(buildApiUrl("/api/auth/login/"), {
+      const response = await fetch(apiUrl("/api/auth/login/"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -83,8 +77,8 @@ export default function LoginPage() {
 
       // Redirect to home page
       router.replace("/");    } catch (err) {
-      console.error(err);
-      setError("حدث خطأ غير متوقع. الرجاء المحاولة لاحقًا.");
+      console.error("[login]", err);
+      setError(describeFetchFailure(err));
     } finally {
       setIsLoading(false);
     }

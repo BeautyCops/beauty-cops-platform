@@ -1,5 +1,6 @@
 "use client";
 
+import { apiUrl, describeFetchFailure } from "@/lib/apiBase";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -33,8 +34,6 @@ type HaircareProduct = {
 };
 
 type AllProducts = SkincareProduct | MakeupProduct | HaircareProduct;
-
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
 
 type PaginatedPayload<T> = {
   results: T[];
@@ -102,11 +101,7 @@ async function fetchPaginatedOnce<T>(
       networkErr instanceof TypeError &&
       (String((networkErr as Error).message).includes("Failed to fetch") ||
         String((networkErr as Error).message).includes("Load failed"));
-    throw new Error(
-      isConnectionRefused
-        ? "لا يمكن الاتصال بالخادم. تأكد من تشغيل الخادم (Django) على http://localhost:8000"
-        : "فشل في تحميل المنتجات"
-    );
+    throw new Error(describeFetchFailure(networkErr));
   }
   if (!res.ok) {
     const data = await res.json().catch(() => null);
@@ -114,7 +109,15 @@ async function fetchPaginatedOnce<T>(
     if (res.status === 400 || res.status === 404) {
       return { items: [], next: null };
     }
-    throw new Error("فشل في تحميل المنتجات");
+    const detail =
+      data && typeof data === "object" && "detail" in data
+        ? String((data as { detail: unknown }).detail)
+        : "";
+    throw new Error(
+      detail
+        ? `فشل تحميل المنتجات (${res.status}): ${detail}`
+        : `فشل تحميل المنتجات (رمز الاستجابة: ${res.status}). تحقق من الخادم الخلفي ومتغير BACKEND_URL على Railway.`
+    );
   }
 
   const data = (await res.json().catch(() => null)) as unknown;
@@ -255,7 +258,7 @@ function ProductsPageContent() {
   useEffect(() => {
     async function fetchBrands() {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/skincare/select_brands/`);
+        const res = await fetch(apiUrl("/api/v1/skincare/select_brands/"));
         if (res.ok) {
           const data = await res.json();
           if (data && Array.isArray(data.results)) {
@@ -306,9 +309,9 @@ function ProductsPageContent() {
           : "";
         const brandParam = selectedBrand !== "all" ? `&brand=${selectedBrand}` : "";
 
-        const skincareUrl = `${API_BASE}/api/v1/skincare/skincare_products/?page=${requestedPage}&size=${backendPageSize}${searchParam}${brandParam}`;
-        const makeupUrl = `${API_BASE}/api/v1/makeup/makeup_products/?page=${requestedPage}&size=${backendPageSize}${searchParam}${brandParam}`;
-        const haircareUrl = `${API_BASE}/api/v1/haircare/haircare_products/?page=${requestedPage}&size=${backendPageSize}${searchParam}${brandParam}`;
+        const skincareUrl = apiUrl(`/api/v1/skincare/skincare_products/?page=${requestedPage}&size=${backendPageSize}${searchParam}${brandParam}`);
+        const makeupUrl = apiUrl(`/api/v1/makeup/makeup_products/?page=${requestedPage}&size=${backendPageSize}${searchParam}${brandParam}`);
+        const haircareUrl = apiUrl(`/api/v1/haircare/haircare_products/?page=${requestedPage}&size=${backendPageSize}${searchParam}${brandParam}`);
 
         const [skincareFirst, makeupFirst, haircareFirst] = await Promise.all([
           fetchPaginatedOnce<SkincareProduct>(skincareUrl, controller.signal),

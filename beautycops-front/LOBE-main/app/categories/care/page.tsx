@@ -1,6 +1,7 @@
 // app/categories/care/page.tsx
 "use client";
 
+import { apiUrl } from "@/lib/apiBase";
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -23,7 +24,6 @@ type BrandOption = {
   value: number;
 };
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
 
 
 function generatePageNumbers(
@@ -115,7 +115,7 @@ function CareCategoryPageContent() {
   useEffect(() => {
     async function fetchBrands() {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/skincare/select_brands/`);
+        const res = await fetch(apiUrl("/api/v1/skincare/select_brands/"));
         if (res.ok) {
           const data = await res.json();
           if (data && Array.isArray(data.results)) {
@@ -139,7 +139,7 @@ function CareCategoryPageContent() {
         const page = Number(pageParam || "1");
         const size = 12;
 
-        let url = `${API_BASE_URL}/api/v1/skincare/skincare_products/?page=${page}&size=${size}`;
+        let url = apiUrl(`/api/v1/skincare/skincare_products/?page=${page}&size=${size}`);
         if (selectedBrand !== "all") {
           url += `&brand=${selectedBrand}`;
         }

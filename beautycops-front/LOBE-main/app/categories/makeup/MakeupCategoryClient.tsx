@@ -1,6 +1,7 @@
 // app/categories/makeup/page.tsx
 "use client";
 
+import { apiUrl } from "@/lib/apiBase";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -16,9 +17,7 @@ type MakeupProduct = {
   brand_name: string | null;
 };
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
-
-const MAKEUP_ENDPOINT = `${API_BASE_URL}/api/v1/makeup/makeup_products/`;
+const MAKEUP_ENDPOINT = apiUrl("/api/v1/makeup/makeup_products/");
 
 async function getMakeupProducts(): Promise<MakeupProduct[]> {
   const res = await fetch(MAKEUP_ENDPOINT, {
