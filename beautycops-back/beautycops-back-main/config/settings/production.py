@@ -34,3 +34,10 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+
+# WhiteNoise manifest can be strict (default True) and will raise if any template
+# references a static path that isn't in the manifest. In production we're seeing:
+# ValueError: Missing staticfiles manifest entry for 'viewflow/img/favicon.png'
+# which causes ALL requests (including API) to return 500 when Django tries to
+# render 404/500 templates. Relax strictness to prevent cascading outages.
+WHITENOISE_MANIFEST_STRICT = env.bool("WHITENOISE_MANIFEST_STRICT", default=False)
