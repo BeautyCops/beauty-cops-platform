@@ -23,7 +23,7 @@ import HeroBanner1 from "@/components/home/HeroBanner1";
 import HeroBanner2 from "@/components/home/HeroBanner2";
 import BottomNavbar from "@/components/BottomNavbar";
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
+import { apiUrl } from "@/lib/apiBase";
 
 type SearchSuggestion = {
   id: number;
@@ -108,7 +108,7 @@ const Home = () => {
           targetProducts.map(async (p) => {
             try {
               const res = await fetch(
-                `${API_BASE}/api/v1/${p.category}/${p.category}_products/${p.id}/`
+                apiUrl(`/api/v1/${p.category}/${p.category}_products/${p.id}/`)
               );
               if (!res.ok) return null;
               const data = await res.json();
@@ -155,9 +155,9 @@ const Home = () => {
       setSearchLoading(true);
       try {
         const [skincareRes, makeupRes, haircareRes] = await Promise.all([
-          fetch(`${API_BASE}/api/v1/skincare/skincare_products/?page=1&size=10&search=${encodeURIComponent(q)}`, { signal: controller.signal }),
-          fetch(`${API_BASE}/api/v1/makeup/makeup_products/?page=1&size=10&search=${encodeURIComponent(q)}`, { signal: controller.signal }),
-          fetch(`${API_BASE}/api/v1/haircare/haircare_products/?page=1&size=10&search=${encodeURIComponent(q)}`, { signal: controller.signal }),
+          fetch(apiUrl(`/api/v1/skincare/skincare_products/?page=1&size=10&search=${encodeURIComponent(q)}`), { signal: controller.signal }),
+          fetch(apiUrl(`/api/v1/makeup/makeup_products/?page=1&size=10&search=${encodeURIComponent(q)}`), { signal: controller.signal }),
+          fetch(apiUrl(`/api/v1/haircare/haircare_products/?page=1&size=10&search=${encodeURIComponent(q)}`), { signal: controller.signal }),
         ]);
 
         const [skincareData, makeupData, haircareData] = await Promise.all([

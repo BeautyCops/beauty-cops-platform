@@ -1,6 +1,7 @@
 // app/categories/care/page.tsx
 "use client";
 
+import { apiUrl } from "@/lib/apiBase";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -16,8 +17,7 @@ type SkincareProduct = {
   brand_name: string | null;
 };
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
-const SKINCARE_ENDPOINT = `${API_BASE_URL}/api/v1/skincare/skincare_products/`;
+const SKINCARE_ENDPOINT = apiUrl("/api/v1/skincare/skincare_products/");
 
 function extractList<T>(payload: unknown): T[] {
   if (Array.isArray(payload)) return payload as T[];

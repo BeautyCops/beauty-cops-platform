@@ -4,6 +4,7 @@ import type React from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
+import { apiUrl, describeFetchFailure } from "@/lib/apiBase";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -15,14 +16,6 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  const buildApiUrl = (path: string) => {
-    // Fallback for local dev if env var isn't set.
-    const base = (API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
-    return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
-  };
 
   const extractErrorMessage = (data: unknown): string | null => {
     if (!data || typeof data !== "object") return null;
@@ -105,7 +98,7 @@ export default function RegisterPage() {
     try {
       setIsLoading(true);
 
-      const response = await fetch(buildApiUrl("/api/auth/registration/"), {
+      const response = await fetch(apiUrl("/api/auth/registration/"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -150,8 +143,8 @@ export default function RegisterPage() {
         router.push("/login");
       }, 1500);
     } catch (err) {
-      console.error(err);
-      setError("حدث خطأ غير متوقع، الرجاء المحاولة لاحقاً");
+      console.error("[register]", err);
+      setError(describeFetchFailure(err));
     } finally {
       setIsLoading(false);
     }

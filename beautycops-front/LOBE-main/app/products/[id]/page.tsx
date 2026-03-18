@@ -1,5 +1,6 @@
 "use client";
 
+import { apiUrl } from "@/lib/apiBase";
 import { Suspense, useCallback, useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -11,8 +12,6 @@ import BottomNavbar from "@/components/BottomNavbar";
 import { ChevronRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
 
 // ========= أنواع الداتا من الـ API =========
 
@@ -302,7 +301,7 @@ function ProductDetailsPageContent({ params }: PageProps) {
     const pathSegment = category === "hair" ? "haircare" : category;
 
     const res = await fetch(
-      `${API_BASE_URL}/api/v1/${pathSegment}/${pathSegment}_products/${productId}/`
+      apiUrl(`/api/v1/${pathSegment}/${pathSegment}_products/${productId}/`)
     );
 
     if (res.status === 404) return null;
@@ -317,7 +316,7 @@ function ProductDetailsPageContent({ params }: PageProps) {
       try {
         console.log(`Fetching affiliate links for ID: ${productId} [${category}]`);
         const affRes = await fetch(
-          `${API_BASE_URL}/api/v1/${pathSegment}/product_affiliate_links/${productId}/`
+          apiUrl(`/api/v1/${pathSegment}/product_affiliate_links/${productId}/`)
         );
         console.log(`Affiliate ID: ${productId} Status: ${affRes.status}`);
 

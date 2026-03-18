@@ -1,6 +1,7 @@
 // app/categories/hair/page.tsx
 "use client";
 
+import { apiUrl } from "@/lib/apiBase";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -14,8 +15,7 @@ type HairProduct = {
   safety_score: number | null;
 };
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
-const HAIR_ENDPOINT = `${API_BASE}/api/v1/haircare/haircare_products/`;
+const HAIR_ENDPOINT = apiUrl("/api/v1/haircare/haircare_products/");
 
 async function getHairProducts(): Promise<HairProduct[]> {
   const res = await fetch(HAIR_ENDPOINT, {

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
 import { clearAuth, getAuthToken } from "@/lib/auth";
+import { apiUrl, describeFetchFailure } from "@/lib/apiBase";
 
 type ProfileData = {
   user_id: number;
@@ -24,13 +25,6 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  const buildApiUrl = (path: string) => {
-    const base = (API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
-    return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
-  };
-
   const SKIN_TYPES = [
     { value: "normal", label: "عادية" },
     { value: "dry", label: "جافة" },
@@ -73,7 +67,7 @@ export default function ProfilePage() {
         // ثم جلب أحدث البيانات من API
         const token = getAuthToken();
         if (token) {
-          const res = await fetch(buildApiUrl("/api/auth/user/"), {
+          const res = await fetch(apiUrl("/api/auth/user/"), {
             method: "GET",
             headers: {
               "Authorization": `Bearer ${token}`,
@@ -110,7 +104,7 @@ export default function ProfilePage() {
     };
 
     loadProfile();
-  }, [router, API_BASE_URL]);
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,7 +129,7 @@ export default function ProfilePage() {
         return;
       }
 
-      const res = await fetch(buildApiUrl("/api/auth/user/"), {
+      const res = await fetch(apiUrl("/api/auth/user/"), {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
