@@ -97,40 +97,62 @@ const Home = () => {
       try {
         setProductsLoading(true);
 
-        const targetProducts = [
-          { id: 122, category: "makeup" },
-          { id: 448, category: "makeup" },
-          { id: 18658, category: "skincare" },
-          { id: 19596, category: "skincare" },
-        ];
+        // Production DB might be missing specific product IDs.
+        // Instead of hard-coding IDs, fetch the first page of each category.
+        const [skincareRes, makeupRes, haircareRes] = await Promise.all([
+          fetch(apiUrl(`/api/v1/skincare/skincare_products/?page=1&size=4`)),
+          fetch(apiUrl(`/api/v1/makeup/makeup_products/?page=1&size=4`)),
+          fetch(apiUrl(`/api/v1/haircare/haircare_products/?page=1&size=4`)),
+        ]);
 
-        const results = await Promise.all(
-          targetProducts.map(async (p) => {
-            try {
-              const res = await fetch(
-                apiUrl(`/api/v1/${p.category}/${p.category}_products/${p.id}/`)
-              );
-              if (!res.ok) return null;
-              const data = await res.json();
-              return { ...data, category: p.category };
-            } catch {
-              return null;
-            }
-          })
-        );
+        const [skincareData, makeupData, haircareData] = await Promise.all([
+          skincareRes.json().catch(() => null),
+          makeupRes.json().catch(() => null),
+          haircareRes.json().catch(() => null),
+        ]);
 
-        const validProducts: Product[] = results
-          .filter((p) => p !== null)
-          .map((p: any) => ({
-            id: p.skincare_id || p.makeup_id,
-            name: p.name,
-            brand_name: p.brand_name,
-            image_url: p.image_url,
-            safety_score: p.safety_score,
-            category: p.category,
-          }));
+        const combined: Product[] = [];
 
-        setMostSearchedProducts(validProducts);
+        if (skincareData?.results && Array.isArray(skincareData.results)) {
+          combined.push(
+            ...skincareData.results.slice(0, 2).map((p: any) => ({
+              id: p.skincare_id,
+              name: p.name,
+              brand_name: p.brand_name,
+              image_url: p.image_url,
+              safety_score: p.safety_score,
+              category: "skincare" as const,
+            }))
+          );
+        }
+
+        if (makeupData?.results && Array.isArray(makeupData.results)) {
+          combined.push(
+            ...makeupData.results.slice(0, 2).map((p: any) => ({
+              id: p.makeup_id,
+              name: p.name,
+              brand_name: p.brand_name,
+              image_url: p.image_url,
+              safety_score: p.safety_score,
+              category: "makeup" as const,
+            }))
+          );
+        }
+
+        if (haircareData?.results && Array.isArray(haircareData.results)) {
+          combined.push(
+            ...haircareData.results.slice(0, 1).map((p: any) => ({
+              id: p.haircare_id,
+              name: p.name,
+              brand_name: p.brand_name,
+              image_url: p.image_url,
+              safety_score: p.safety_score,
+              category: "haircare" as const,
+            }))
+          );
+        }
+
+        setMostSearchedProducts(combined.slice(0, 4));
       } catch (error) {
         console.error("Failed to fetch products:", error);
       } finally {
