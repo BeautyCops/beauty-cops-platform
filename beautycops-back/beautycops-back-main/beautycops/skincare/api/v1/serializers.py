@@ -1,6 +1,8 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from django.db.utils import OperationalError, ProgrammingError
+
 from beautycops.core.models import ProductAffiliateLink
 from beautycops.skincare.models import Brand, Category, ProductType, SkincareProduct
 from beautycops.utils.serializers import IngredientInlineSerializer
@@ -68,11 +70,15 @@ class SkincareProductSerializer(serializers.ModelSerializer):
         - id_type = other
         - id_value = skincare_id
         """
-        qs = ProductAffiliateLink.objects.filter(
-            id_type=ProductAffiliateLink.IdType.OTHER, id_value=obj.skincare_id
-        ).order_by("link_id")
-
-        return AffiliateLinkSerializer(qs, many=True, context=self.context).data
+        try:
+            qs = ProductAffiliateLink.objects.filter(
+                id_type=ProductAffiliateLink.IdType.OTHER, id_value=obj.skincare_id
+            ).order_by("link_id")
+            return AffiliateLinkSerializer(qs, many=True, context=self.context).data
+        except (ProgrammingError, OperationalError):
+            # In some production DBs this table may not exist yet (unmanaged/imported data).
+            # Do not crash product endpoints; just omit affiliate links.
+            return []
 
 
 class SelectBrandSerializer(serializers.ModelSerializer):
