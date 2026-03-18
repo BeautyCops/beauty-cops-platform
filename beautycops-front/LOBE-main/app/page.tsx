@@ -139,7 +139,7 @@ const Home = () => {
     }
 
     fetchMostSearchedProducts();
-  }, [isLogin]);
+  }, []);
 
   // Search suggestions effect (public)
   useEffect(() => {
@@ -256,25 +256,25 @@ const Home = () => {
       name: "العناية",
       icon: EyeglassesIcon,
       category: "commerce",
-      href: isLogin ? "/categories/care" : "/login",
+      href: "/categories/care",
     },
     {
       name: "الشعر",
       icon: HairDryerIcon,
       category: "commerce",
-      href: isLogin ? "/categories/hair" : "/login",
+      href: "/categories/hair",
     },
     {
       name: "المكياج",
       icon: SunglassesIcon,
       category: "commerce",
-      href: isLogin ? "/categories/makeup" : "/login",
+      href: "/categories/makeup",
     },
     {
       name: "العطور",
       icon: WineIcon,
       category: "commerce",
-      href: isLogin ? "/categories/perfumes" : "/login",
+      href: "/categories/perfumes",
     },
   ];
 
@@ -419,7 +419,6 @@ const Home = () => {
                 {/* Circular Search Button - Left side in RTL */}
                 <button
                   type="button"
-                  onClick={() => !isLogin && router.push('/login')}
                   className="flex-shrink-0 w-[42px] h-[42px] md:w-12 md:h-12 rounded-full flex items-center justify-center transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary"
                   style={{
                     background:
@@ -536,9 +535,8 @@ const Home = () => {
           </div>
         </section>
 
-        {/* Most Searched Products Section - ONLY SHOW IF LOGIN */}
-        {isLogin && (
-          <section className="mb-8 lg:mb-12">
+        {/* Most Searched Products Section - public */}
+        <section className="mb-8 lg:mb-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-natural-primary-text">
                 المنتجات الأكثر بحثاً
@@ -614,7 +612,6 @@ const Home = () => {
               </div>
             )}
           </section>
-        )}
 
         {/* Blog Section */}
         <section className="mb-6 md:mb-8 lg:mb-12">
