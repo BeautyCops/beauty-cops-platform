@@ -14,6 +14,15 @@ CSRF_TRUSTED_ORIGINS = [
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 DATABASES["default"]["CONN_MAX_AGE"] = env.int("CONN_MAX_AGE", default=60)  # noqa: F405
+
+# Ensure production uses PostgreSQL (Railway provides DATABASE_URL).
+# Base settings default to SQLite for local convenience; in production this must be overridden.
+_db_url = env.str("DATABASE_URL", default="").strip()
+if _db_url:
+    DATABASES["default"] = env.db("DATABASE_URL")  # noqa: F405
+    # django-environ may return the legacy engine name
+    if DATABASES["default"].get("ENGINE") == "django.db.backends.postgresql_psycopg2":
+        DATABASES["default"]["ENGINE"] = "django.db.backends.postgresql"
 # STATIC
 # ------------------------
 # Static files (CSS, JavaScript, Images)
