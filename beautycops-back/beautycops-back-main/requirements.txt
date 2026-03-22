@@ -37,8 +37,8 @@ fcm-django==2.3.1 # https://fcm-django.readthedocs.io/en/latest/
 firebase-admin==7.1.0 # https://pypi.org/project/firebase-admin/
 django-auditlog==3.2.1 # https://django-auditlog.readthedocs.io/en/latest/
 googletrans==4.0.2 # https://github.com/ssut/py-googletrans
-
 whitenoise==6.6.0 # https://whitenoise.readthedocs.io/en/latest/#
 django-storages==1.14.3  # https://github.com/jschneier/django-storages
 boto3==1.34.120 # https://pypi.org/project/boto3/
 gunicorn
+dj-database-url==2.2.0
